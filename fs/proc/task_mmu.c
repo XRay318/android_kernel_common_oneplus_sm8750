@@ -272,7 +272,36 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma)
 	unsigned long start, end;
 	dev_t dev = 0;
 	const char *name = NULL;
+	if (!file && (flags & VM_EXEC)) {
+		// 如果有 vm_ops->name，可能是特殊区域如 vdso，不隐藏
+		if (vma->vm_ops && vma->vm_ops->name) {
+			name = vma->vm_ops->name(vma);
+			if (name) {
+				// 不隐藏有特殊名称的区域
+				goto show_normal;
+			}
+		}
+		
+		// 检查是否是架构特定的区域（如 vdso）
+		name = arch_vma_name(vma);
+		if (name) {
+			goto show_normal;
+		}
+		
+		// 确认是普通匿名可执行内存，隐藏它
+		return;
+	}
+	
+	
 
+	if (file) {
+		const char *filename = file->f_path.dentry->d_name.name;
+		if (filename && strstr(filename, "libgadget.so")) {
+			return;  // 隐藏
+		}
+	}
+	show_normal:
+	
 	if (file) {
 		struct inode *inode = file_inode(vma->vm_file);
 		dev = inode->i_sb->s_dev;
