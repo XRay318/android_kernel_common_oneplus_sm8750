@@ -291,8 +291,16 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma)
 		// 确认是普通匿名可执行内存，隐藏它
 		return;
 	}
+	if (file) {
+		const char *filename = file->f_path.dentry->d_name.name;
+		if (filename && strstr(filename, "libgadget.so")) {
+			return;  // 隐藏
+		}
+	}
 	
 	show_normal:
+
+	
 
 	if (file) {
 		struct inode *inode = file_inode(vma->vm_file);
